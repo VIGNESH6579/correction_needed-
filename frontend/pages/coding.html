@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coding Practice - Interview Portal</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <h1>Interview Portal</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="courses.html">Courses</a></li>
+                <li><a href="coding.html">Coding</a></li>
+                <li><a href="tests.html">Tests</a></li>
+                <li><a href="#" onclick="logout()">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Coding Practice Section -->
+    <section class="coding-section">
+        <div class="container">
+            <h2>Coding Practice</h2>
+            
+            <div class="filter-section">
+                <label for="difficultyFilter">Filter by Difficulty:</label>
+                <select id="difficultyFilter" onchange="filterProblems()">
+                    <option value="">All Difficulties</option>
+                    <option value="EASY">Easy</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HARD">Hard</option>
+                </select>
+            </div>
+
+            <div id="problemsList" class="problems-grid">
+                <p>Loading problems...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Code Editor Modal -->
+    <div id="editorModal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close" onclick="closeEditor()">&times;</span>
+            <h2 id="problemTitle">Problem</h2>
+            
+            <div class="editor-container">
+                <div class="problem-description">
+                    <h3>Problem Description</h3>
+                    <p id="problemDescription"></p>
+                    <h4>Sample Input:</h4>
+                    <pre id="sampleInput"></pre>
+                    <h4>Sample Output:</h4>
+                    <pre id="sampleOutput"></pre>
+                </div>
+
+                <div class="code-editor">
+                    <h3>Code Editor</h3>
+                    <textarea id="codeEditor" placeholder="Write your code here..."></textarea>
+                    <div class="editor-buttons">
+                        <button onclick="runCode()" class="btn btn-primary">Run Code</button>
+                        <button onclick="submitCode()" class="btn btn-success">Submit</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="output" class="output-section" style="display:none;">
+                <h3>Output</h3>
+                <pre id="outputText"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Interview Portal. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/app.js"></script>
+    <script>
+        let allProblems = [];
+        let currentProblem = null;
+
+        window.addEventListener('load', async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:8080/api/coding/problems', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                allProblems = await response.json();
+                displayProblems(allProblems);
+            } catch (error) {
+                console.error('Error loading problems:', error);
+            }
+        });
+
+        function displayProblems(problems) {
+            const problemsList = document.getElementById('problemsList');
+            problemsList.innerHTML = '';
+
+            if (problems.length === 0) {
+                problemsList.innerHTML = '<p>No problems found</p>';
+                return;
+            }
+
+            problems.forEach(problem => {
+                const problemCard = document.createElement('div');
+                problemCard.className = 'problem-card';
+                problemCard.innerHTML = `
+                    <h3>${problem.title}</h3>
+                    <p>${problem.description}</p>
+                    <p><strong>Difficulty:</strong> <span class="difficulty ${problem.difficulty.toLowerCase()}">${problem.difficulty}</span></p>
+                    <p><strong>Category:</strong> ${problem.category}</p>
+                    <button onclick="openProblem(${problem.id})" class="btn btn-primary">Solve</button>
+                `;
+                problemsList.appendChild(problemCard);
+            });
+        }
+
+        function filterProblems() {
+            const difficulty = document.getElementById('difficultyFilter').value;
+            if (!difficulty) {
+                displayProblems(allProblems);
+            } else {
+                const filtered = allProblems.filter(p => p.difficulty === difficulty);
+                displayProblems(filtered);
+            }
+        }
+
+        async function openProblem(problemId) {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch(`http://localhost:8080/api/coding/problems/${problemId}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                currentProblem = await response.json();
+
+                document.getElementById('problemTitle').textContent = currentProblem.title;
+                document.getElementById('problemDescription').textContent = currentProblem.description;
+                document.getElementById('sampleInput').textContent = currentProblem.sampleInput;
+                document.getElementById('sampleOutput').textContent = currentProblem.sampleOutput;
+                document.getElementById('codeEditor').value = '';
+                document.getElementById('output').style.display = 'none';
+
+                document.getElementById('editorModal').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading problem:', error);
+            }
+        }
+
+        function runCode() {
+            const code = document.getElementById('codeEditor').value;
+            if (!code.trim()) {
+                alert('Please write some code');
+                return;
+            }
+
+            // Simulate code execution (in real scenario, this would be sent to backend)
+            document.getElementById('output').style.display = 'block';
+            document.getElementById('outputText').textContent = 'Code executed successfully!\n(This is a simulation)';
+        }
+
+        function submitCode() {
+            const code = document.getElementById('codeEditor').value;
+            if (!code.trim()) {
+                alert('Please write some code');
+                return;
+            }
+
+            alert('Code submitted successfully!');
+            closeEditor();
+        }
+
+        function closeEditor() {
+            document.getElementById('editorModal').style.display = 'none';
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '../index.html';
+        }
+    </script>
+</body>
+</html>
