@@ -5,13 +5,16 @@ import com.interview.portal.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class UserService {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
     private UserRepository userRepository;
@@ -31,22 +34,37 @@ public class UserService {
     }
 
     public User loginUser(String email, String password) {
+        logger.info("=== LOGIN ATTEMPT ===");
+        logger.info("Email: {}", email);
+        logger.info("Password length: {}", password.length());
+        
         Optional<User> userOptional = userRepository.findByEmail(email);
 
         if (userOptional.isEmpty()) {
+            logger.error("User not found: {}", email);
             throw new RuntimeException("User not found");
         }
 
         User user = userOptional.get();
+        logger.info("User found - ID: {}, Email: {}, Role: {}, Status: {}", 
+                    user.getId(), user.getEmail(), user.getRole(), user.getStatus());
+        logger.info("Password hash from DB: {}", user.getPassword());
 
         if (!user.getStatus().equals(User.UserStatus.APPROVED)) {
+            logger.error("User not approved: {}", email);
             throw new RuntimeException("User account is not approved yet");
         }
 
-        if (!passwordEncoder.matches(password, user.getPassword())) {
+        logger.info("Attempting password match...");
+        boolean passwordMatches = passwordEncoder.matches(password, user.getPassword());
+        logger.info("Password matches: {}", passwordMatches);
+        
+        if (!passwordMatches) {
+            logger.error("Password mismatch for user: {}", email);
             throw new RuntimeException("Invalid password");
         }
 
+        logger.info("Login successful for: {}", email);
         return user;
     }
 
