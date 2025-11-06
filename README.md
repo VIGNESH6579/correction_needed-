@@ -228,3 +228,5 @@ This project is provided as-is for educational and learning purposes.
 ## Disclaimer
 
 This application is designed for educational purposes. The default credentials should be changed before deploying to production. Ensure proper security measures are implemented for production deployments.
+#   m a n u s _ l e a r n i n g  
+ 
